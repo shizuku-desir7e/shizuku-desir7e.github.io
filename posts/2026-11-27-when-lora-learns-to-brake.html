@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="四张古建、三方对比、两次直觉被数据推翻、一个叫路 B 的优化捷径：一次从感觉效果有问题到定位到优化动力学的 Wan2.2 文旅视频 LoRA 微调实验完整复盘，含五项误差分解。">
+<title>当 LoRA 学会"刹车"：一次 Wan2.2 文旅视频微调实验的完整复盘</title>
+<style>
+  :root {
+    --text: #1f2328;
+    --muted: #59636e;
+    --bg: #ffffff;
+    --surface: #f6f8fa;
+    --border: #d1d9e0;
+    --accent: #0969da;
+    --accent-soft: #ddf4ff;
+    --code-bg: #1f2328;
+    --code-text: #e6edf3;
+    --warn: #9a6700;
+    --warn-bg: #fff8c5;
+    --ok: #1a7f37;
+    --ok-bg: #dafbe1;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans SC",
+                 "Noto Sans CJK SC", sans-serif;
+    font-size: 17px;
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 56px 24px 120px;
+  }
+  header.post-header {
+    margin-bottom: 40px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  header.post-header .kicker {
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  header.post-header .kicker a { color: inherit; }
+  header.post-header .kicker a:hover { text-decoration: none; opacity: 0.75; }
+  h1 {
+    font-size: 34px;
+    line-height: 1.3;
+    margin: 0 0 18px;
+    letter-spacing: -0.01em;
+  }
+  .lede {
+    font-size: 18px;
+    color: var(--muted);
+    line-height: 1.8;
+    margin: 0;
+  }
+  h2 {
+    font-size: 25px;
+    line-height: 1.4;
+    margin: 56px 0 18px;
+    padding-top: 12px;
+    letter-spacing: -0.01em;
+  }
+  h3 {
+    font-size: 19px;
+    line-height: 1.5;
+    margin: 34px 0 12px;
+    color: #2b3138;
+  }
+  p { margin: 0 0 18px; }
+  strong { font-weight: 700; }
+  em { font-style: normal; color: var(--muted); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  blockquote {
+    margin: 24px 0;
+    padding: 14px 20px;
+    background: var(--surface);
+    border-left: 4px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    color: #2b3138;
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  ul, ol { margin: 0 0 20px; padding-left: 26px; }
+  li { margin-bottom: 9px; }
+  li > ul, li > ol { margin-top: 9px; margin-bottom: 4px; }
+
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.88em;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 1px 5px;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 18px 20px;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-size: 14.5px;
+    line-height: 1.65;
+    margin: 22px 0;
+  }
+  pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 26px 0;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  thead th {
+    background: var(--surface);
+    text-align: left;
+    font-weight: 700;
+    color: #2b3138;
+    border-bottom: 2px solid var(--border);
+    padding: 11px 13px;
+    white-space: nowrap;
+  }
+  tbody td {
+    border-bottom: 1px solid var(--border);
+    padding: 10px 13px;
+    vertical-align: top;
+  }
+  tbody tr:nth-child(even) { background: #fbfcfd; }
+  tbody tr:hover { background: var(--accent-soft); }
+  table code { font-size: 0.85em; }
+
+  .callout {
+    margin: 24px 0;
+    padding: 16px 20px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .callout.warn { background: var(--warn-bg); border-color: #eac54f; }
+  .callout.ok   { background: var(--ok-bg); border-color: #8fd19e; }
+  .callout .label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .callout.warn .label { color: var(--warn); }
+  .callout.ok .label { color: var(--ok); }
+  .callout p:last-child { margin-bottom: 0; }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 64px 0 8px;
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .divider::before, .divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .formula {
+    font-family: "SFMono-Regular", Consolas, monospace;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 20px 0;
+    text-align: center;
+    font-size: 15.5px;
+  }
+
+  footer.post-footer {
+    margin-top: 72px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 14.5px;
+    line-height: 1.8;
+    font-style: italic;
+  }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 36px 18px 80px; }
+    h1 { font-size: 27px; }
+    h2 { font-size: 22px; }
+    body { font-size: 16px; }
+    table { font-size: 13.5px; display: block; overflow-x: auto; white-space: nowrap; }
+    thead th, tbody td { white-space: normal; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="post-header">
+  <div class="kicker"><a href="/">← shizuku-desir7e 的博客</a></div>
+  <h1>当 LoRA 学会"刹车"：一次 Wan2.2 文旅视频微调实验的完整复盘</h1>
+  <p class="lede">
+    四张古建、三方对比、两次直觉被推翻、一个叫"路 B"的机制。这篇记录一次从"感觉效果有问题"到"定位到优化动力学"的完整排查过程，以及那些反直觉的数字背后到底发生了什么。
+  </p>
+</header>
+
+<h2>一、起点：一个"看起来不对"的视频</h2>
+<p>故事从一支文旅视频开始。用 LoRA 微调后的 Wan2.2 生成，直觉上"效果有问题"——但问题在哪，说不清楚。是单帧不够精致？是运动不自然？还是帧间在闪？</p>
+<p>最初的判断路径很朴素：能不能让多模态大模型帮忙看看？</p>
+<p>答案是<strong>能，但有边界</strong>。当前 VLM 在 AI 视频伪影检测上的表现，独立基准给出的结论相当审慎——Artifact-Bench 评估 19 个领先模型，发现它们在挑战性设置下接近随机甚至低于随机；Spotlight 的结论是，人类定位视频生成错误的能力约为最佳 VLM 基线的两倍。VLM 可以帮你"指出哪里可能不对劲"，但不能当精确裁判。</p>
+<p>于是诊断路径收敛为：<strong>VLM 做首轮筛查 → 密集抽帧暴露时序问题 → SSIM 等客观指标交叉验证 → 把现象归因到 LoRA 的空间层/时间层</strong>。工具上，VideoScore2 提供视觉质量/对齐度/物理一致性三维评分，Skyra 这类专用模型能输出带时空定位的伪影解释——它们负责"看到"，但"归因"要靠实验数据。</p>
+<p>真正的突破，来自把三方对比摆到同一张桌子上。</p>
+
+<h2>二、三方对比：v1 是负优化，v2 是当前最优</h2>
+<p>实验设计很直接：base（原始 Wan2.2-TI2V-5B）、v1（rank32 / lr2e-4 / 6 epoch）、v2（rank64 / lr1e-4 / 5 epoch / cached），同一张徽派门楼图，同一套量化口径。</p>
+<p>结果四张古建全是同一个序：</p>
+
+<table>
+  <thead>
+    <tr><th>图</th><th>base 清晰度 / 运动</th><th>v1</th><th>v2</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>门楼</td><td>37.1 / 8.37</td><td>32.8 / 8.72</td><td><strong>41.6 / 5.15</strong></td></tr>
+    <tr><td>月洞门</td><td>90.6 / 4.03</td><td>81.4 / 2.63</td><td><strong>94.5 / 1.97</strong></td></tr>
+    <tr><td>石板巷</td><td>23.0 / 4.21</td><td>21.0 / 10.39</td><td>22.5 / 3.52</td></tr>
+    <tr><td>白墙</td><td>14.5 / 7.75</td><td>13.1 / 7.21</td><td><strong>15.4 / 2.83</strong></td></tr>
+  </tbody>
+</table>
+
+<p><strong>v2 &gt; base &gt; v1，4/4 张无一例外。</strong></p>
+<ul>
+  <li><strong>v1 是负优化</strong>：清晰度全面低于 base，运动量却更大——石板巷那张运动量是 base 的 2.5 倍。lr 2e-4 把"大运镜"学过头，高频纹理被帧间位移吃掉了。</li>
+  <li><strong>v2 是当前最优</strong>：清晰度全面高于 base，运动量全部不到 base 的 60%。瓦当轮廓保持最好，跟 base 接近。</li>
+</ul>
+<p>但 v2 的"最锐"里藏着一个陷阱：<strong>Laplacian 方差对运动模糊敏感，运动量小本身就会让帧内更清晰</strong>。所以 41.6 这个数字里，有一部分是"运动少"的统计效应。真正可信的是定性判断——放大瓦当区域逐帧看，v2 的轮廓确实保持得最好。</p>
+<p>而这个"运动少"，恰恰是整场实验最重要的线索。</p>
+
+<h2>三、核心机制：LoRA 学会了"刹车"，而不是"开车"</h2>
+<p>v2 运动量 5.15，不到 base 的一半。这不是"没学到运动"——如果只是没学到，它应该退化为 base 的 8.37 左右，而不是更低。<strong>低于 base，说明它主动加了一个反向偏置。</strong></p>
+<p>这里要引入一个优化动力学的视角。LoRA 从零初始化，拟合的是"训练数据分布 − 基座先验"的残差。在这批航拍推进/快速平移的数据里，残差的主要成分是帧间高频纹理的快速位移。降低这部分误差有两条路：</p>
+<ul>
+  <li><strong>路 A：正确建模运动轨迹</strong>。让时间层学会高秩的时序对应关系，纹理按真实轨迹移动。梯度稀疏、长程、需要高秩表达。</li>
+  <li><strong>路 B：抑制帧间变化</strong>。加一个"让纹理别动"的平滑偏置。梯度密集、每帧每区域都在提供信号、低秩就能表达。</li>
+</ul>
+<p><strong>低 lr 下，路 B 的梯度更早、更稳定地出现。</strong> v2 在 3440 步内，参数预算优先填满了这个低秩友好的方向——运动被抑制，不是没学，是学了一个"让画面别变"的解。</p>
+<p>v1 和 v2 是同一个问题的两个极端：v1（lr 2e-4）步长大，冲过了路 B，落在"放大运动"的另一个错误解上；v2（lr 1e-4）步长小，只够走到路 B 的盆地。<strong>两者都没到路 A。</strong></p>
+<p>三条独立证据坐实了这个机制：</p>
+<ol>
+  <li><strong>四张图全序 v2&gt;base&gt;v1</strong>，v2 运动量系统性低于 base。</li>
+  <li><strong>CFG 越高越糊越动</strong>（清晰度 296→235，运动量 16.1→18.5）。高 CFG 放大每帧的"重绘冲动"，牺牲时序一致性——这和"运动是细节杀手"是同一件事的两面。</li>
+  <li><strong>alpha 越低越运动</strong>（alpha 0.6 运动量 19.16，alpha 1.0 运动量 16.42）。调低 alpha 等于削弱 v2 的"刹车"，画面自然动起来。<strong>这直接证明 LoRA 的净作用是压制运动。</strong></li>
+</ol>
+
+<h2>四、漂移的根因：不是采样噪声，是 VAE 压缩 × 域外高频纹理</h2>
+<p>瓦当融化的放大证据很直观：第 0 帧一颗颗分开，第 12 帧开始发软，第 24 帧相邻瓦当粘在一起，第 48 帧整排糊成一条带子。<strong>不在整体构图，在小尺度结构。</strong></p>
+<p>三个原因叠加：</p>
+<ol>
+  <li><strong>VAE 压缩太狠</strong>：16×16×4 的压缩比下，一颗瓦当在潜空间里只有一两个 token。它能"记得大概有一排瓦"，但记不住"每颗的形状"。静止时靠首帧约束还能还原，一运动就各自重建 → 融化。</li>
+  <li><strong>训练域没有这种纹理</strong>：素材是山林、海岸、城市天际线，没有密集重复的浮雕/瓦作/格窗。模型不知道"这类纹理在运动中必须锁住"，就当成噪声去重绘。</li>
+  <li><strong>运动幅度过大</strong>：49 帧 2 秒里机位位移偏大，误差逐帧累积。</li>
+</ol>
+<p>这也解释了为什么月洞门没漂：<strong>判据不是"中式/西式"，而是"低频大形体 vs 高频细节"</strong>。月洞门是大色块 + 低频轮廓，潜空间 token 少、结构简单，锁得住；门楼是高频细节，锁不住。</p>
+<p>一个重要的判断：<strong>VAE 压缩是结构性约束，不是调参能解决的。</strong> 参数扫描也证实了这一点——</p>
+
+<h2>五、两次直觉被数据推翻</h2>
+
+<h3>① "降 CFG、降帧数能缓解漂移"——方向对，但幅度远小于模型差异</h3>
+<p>四个组合（CFG 4/6 × 33/49 帧）的清晰度差距在 6% 以内，肉眼几乎分不出。33 帧确实比 49 帧好 7%（44.5 vs 41.6），但 <strong>v2 vs v1 的模型差异是 +27%</strong>。结论很硬：<strong>模型之间的差异 ≫ 参数之间的差异，重心在训练配置，不在推理调参。</strong></p>
+
+<h3>② "CFG 7 更锐"——被单个画面骗了</h3>
+<p>看雪山那张觉得 CFG 7 更锐，全量统计是反的：CFG 3→7，清晰度 296.4→234.7，运动量 16.09→18.51。<strong>CFG 越高 → 运动越大、画面越糊。</strong> 古建类建议 CFG 4–5，别上 7。</p>
+<p>这两次推翻的共同教训：<strong>单图观察会骗人，全量统计 + 多场景覆盖才能下结论。</strong></p>
+
+<h2>六、v3 在验证什么，以及一个值得警惕的矛盾</h2>
+<p>v3 = 过滤静帧 + rank32 + lr1e-4 + cached latents + torch.compile。它赌的是：<strong>低学习率 + 更干净的数据，能不能在保留运动的同时不放大细节漂移。</strong></p>
+<p>这里有一个矛盾值得警惕：<strong>训练数据是"大运动"，但训出来的 LoRA（v2）净效果是"抑制运动"。</strong> 这跟"LoRA 拟合训练数据分布"的朴素理解是反的。可能的解释就是路 B 捷径——v2 的"安静"不是因为它学到了"这批素材该安静"，而是因为它学到了"让画面别动"这个更容易降低损失的解。</p>
+<p>所以 v3 跑完，重点看三件事：</p>
+<ol>
+  <li><strong>运动量是否落在 base 附近（8–10）</strong>。低于 8 仍在路 B，高于 10 滑向 v1。</li>
+  <li><strong>清晰度是否 ≥ v2 且不靠"运动少"撑起来</strong>。运动量 9、清晰度 42 是好点；运动量 9、清晰度 38 说明动起来了但细节没锁住。</li>
+  <li><strong>alpha 扫描是否还呈现"越低越运动"的反转</strong>。如果曲线变平或反转，说明 v3 学到的增量不再是单纯的"压制偏置"。</li>
+</ol>
+<p>建议把 base/v1/v2/v3 画成<strong>"运动量–清晰度"二维散点</strong>，最优点在"运动量接近 base、清晰度不低于 v2"的区域，而不是单看清晰度排序。</p>
+
+<h2>七、如果 VAE 是硬瓶颈，路该怎么走</h2>
+<p>VAE 压缩太狠是根因之一，但<strong>"训 VAE"的正确形态是"锚定微调"而不是"重训"</strong>。</p>
+<ul>
+  <li><strong>不能简单从头训</strong>：微调 VAE 会移动整个潜空间分布，已经训好的 DiT/LoRA 可能瞬间失效。DPA（Diffusion Prior Anchoring）的思路是用冻结的扩散模型作"锚"，把新潜变量拉回预训练扩散模型能准确去噪的区域，在 Wan2.2 上验证过预测误差降低 4.0%。</li>
+  <li><strong>VAE-GAN 能做，但主战场是解码保真</strong>：GAN 损失解决的是"解码时高频细节还原得够不够真"，而瓦当漂移的根因更可能在"编码时有没有把每颗瓦当的差异记下来"。GAN 晚启动（约 5000 步后）、配 3D 判别器、加时序差分目标，是成熟配方；但<strong>别把"GAN 让画面变锐"误认为"瓦当在帧间锁住了"</strong>。</li>
+  <li><strong>更轻量的替代是频率课程</strong>：FreqWarm 的做法是在扩散训练早期对 RGB 输入做频率滤波，增加高频潜信号的曝光，不碰 VAE，在 Wan2.2-VAE 上把 gFID 降低 14.11。成本最低、对现有流水线冲击最小。</li>
+</ul>
+<p>务实路径：<strong>v3 跑完之前不动 VAE</strong>；如果 v3 仍不理想，优先试频率课程；确认是硬瓶颈后，走"解码器优先、带 DPA 锚定"的微调。</p>
+
+<h2>八、上半场小结：这次实验真正学到的东西</h2>
+<ol>
+  <li><strong>视频 LoRA 的失败模式，不是"学不会"，而是"学到了捷径"。</strong> 低 lr + 有限步数下，模型优先拟合低秩友好的"抑制变化"，而不是高秩的"正确建模运动"。表现为"画面很稳但不动"，容易被误读为"细节好"。</li>
+  <li><strong>清晰度指标会骗人，必须和运动量一起看。</strong> Laplacian 方差对运动模糊敏感，运动少 → 帧内清晰 → 方差高。单看清晰度会把"刹车型 LoRA"误判为"最优模型"。<strong>二维散点比单指标排序可靠。</strong></li>
+  <li><strong>单图直觉会被全量统计推翻。</strong> CFG 的方向、alpha 的反转，都是单图观察给出错误信号、全量数据纠正的案例。多场景覆盖是结论可信的前提。</li>
+  <li><strong>参数调节的空间是"保细节 vs 贴文本"，不是"保细节 vs 运动感"。</strong> 想同时保细节和运动感，只能从模型/数据层面解决。CFG 和 alpha 是在"使用"LoRA 的本性，改变不了本性。</li>
+  <li><strong>归因链条要落到具体机制，而不是停在"效果不好"。</strong> 从"感觉有问题"到"VAE 压缩 × 域外高频纹理 × 运动放大"，再到"路 B 优化捷径"——每一步都需要数据支撑，而不是直觉。</li>
+  <li><strong>工具是辅助，不是裁判。</strong> VLM、VideoScore2、Skyra 能帮你"看到"问题，但"归因"必须靠受控实验。模型之间的差异远大于参数之间的差异，这个结论本身就是靠三方对比 + 全量统计得出的。</li>
+</ol>
+
+<div class="divider">下半场 · 把 loss 拆开</div>
+
+<h2>九、先看 Wan2.2 的训练 loss 到底在算什么</h2>
+<p>Wan2.2 是 DiT 架构 + <strong>Flow Matching（整流流）</strong>。训练时，给定一个视频的潜变量 <code>x₁</code>（VAE 编码后的结果）和一个噪声 <code>x₀ ~ N(0, I)</code>，在时间步 <code>t</code> 构造插值：</p>
+
+<div class="formula">x_t = (1 − t)·x₀ + t·x₁</div>
+
+<p>模型要预测的是<strong>速度场</strong> <code>v = x₁ − x₀</code>（从噪声指向数据的直线方向）。损失是：</p>
+
+<div class="formula">L = E<sub>t, x₀, x₁</sub> ‖ v<sub>θ</sub>(x_t, t, c) − (x₁ − x₀) ‖²</div>
+
+<p>其中 <code>c</code> 是条件（文本 + 首帧）。<strong>这个 MSE 是在 VAE 的潜空间上算的，不是像素空间。</strong> 这一句话很关键——它意味着：<strong>高频纹理在进入 loss 之前，已经被 16×16×4 的 VAE 压缩过一轮了。</strong> 一颗瓦当在潜空间里只剩一两个 token，loss 对这个 token 的预测误差，就是模型能"看到"的全部高频信息。</p>
+<p>更关键的是：<strong>这个 loss 对所有潜变量一视同仁</strong>。MSE 不会因为某个 token 对应的是"瓦当边缘的高频相位"就给它更高权重，也不会因为某个 token 对应的是"白墙的低频色块"就给它更低权重。<strong>高频纹理的梯度信号，和低频区域的梯度信号，在同一个 loss 里被混在一起。</strong></p>
+<p>这就是问题的起点。</p>
+
+<h2>十、把这个 loss 拆开：五项误差，只有两项和"运动"有关</h2>
+<p>在时间步 <code>t</code>，对高频纹理区域，<code>‖ v_θ − v* ‖²</code> 的误差不是单一的量，而是多个来源叠加的残差。可以写成：</p>
+
+<div class="formula">E = E_位移 + E_一致性 + E_固有 + E_表达 + E_优化</div>
+
+<p>前两项是<strong>时序维度</strong>的主要来源，后三项是<strong>模型/训练层面</strong>的约束。逐项对应到 Wan2.2 的 loss 上。</p>
+
+<h3>E_位移：运动轨迹预测误差（路 A 的主战场）</h3>
+<p>这是"纹理该去哪"的误差。航拍推进/快速平移下，同一块瓦当在相邻帧的位置变化大，模型预测的速度场必须携带正确的位移信息。误差来自：</p>
+<ul>
+  <li><strong>位移方向/速度预测不准</strong>：速度场对"这一帧纹理移动了多少像素"估计有偏，去噪后纹理落在错误位置。</li>
+  <li><strong>深度分层运动不一致</strong>：前景瓦当和背景砖雕的视差不同，模型若用单一运动场近似，某层会错位。</li>
+  <li><strong>遮挡/显露区域预测错</strong>：快速平移时，新显露的区域没有历史对应，模型只能"猜"，高频纹理猜错的代价很高。</li>
+  <li><strong>运动模糊与位移的耦合</strong>：快速运动本身带来模糊，模型要把"模糊"和"位移"分开建模，两者混淆会同时错。</li>
+</ul>
+<p><strong>路 A 降的就是 E_位移</strong>：正确建模高秩时序对应关系，让纹理按真实轨迹移动。这部分误差<strong>高秩、长程、稀疏监督</strong>——在 Wan2.2 的 loss 里，它对应的是<strong>运动区域</strong>的速度场残差，梯度只在纹理实际位移的地方出现，而且需要跨多帧的时序注意力才能对齐。<strong>低 lr 下难学。</strong></p>
+
+<h3>E_一致性：帧间稳定性误差（路 B 的诱因，也是它压制的对象）</h3>
+<p>这是"纹理在帧间是否稳定"的误差。即使位移大致对，纹理的<strong>相位、对比度、局部亮度</strong>在帧间仍可能波动。误差来自：</p>
+<ul>
+  <li><strong>高频成分的相位漂移</strong>：瓦当边缘、砖雕线条的相位在帧间轻微错动，视觉上就是"抖/闪"。</li>
+  <li><strong>局部对比度/亮度波动</strong>：同一块纹理在相邻帧的锐度、明暗不一致。</li>
+  <li><strong>生成过程的随机性未对齐</strong>：扩散采样本身有随机性，高频细节对随机性更敏感，帧间独立采样会放大不一致。</li>
+</ul>
+<p><strong>路 B 降的就是 E_一致性</strong>：加一个"压低帧间方差"的平滑偏置，让纹理别动、别闪。这部分误差在 Wan2.2 的 loss 里，对应的是<strong>每个潜变量 token 在时间维度上的方差</strong>——它<strong>低秩可表达、监督密集</strong>（每帧每区域都在提供信号），所以低 lr 下先被拟合。</p>
+<p>但要注意：<strong>路 B 降 E_一致性，可能以抬高 E_位移为代价</strong>——纹理被"按住"了，位移就不准了。v2 运动量 5.12 远低于 base 的 8.37，正是这个代价的体现。</p>
+
+<h3>E_固有：高频细节的不可约误差（VAE 压缩 + 信息瓶颈）</h3>
+<p>这是数据/任务本身带来的下界，任何模型都降不到零：</p>
+<ul>
+  <li><strong>高频信息量大、预测方差高</strong>：瓦当、砖雕、树叶这类纹理的细节维度高，扩散模型对高频成分的预测天然方差大。</li>
+  <li><strong>VAE 压缩已经丢了一部分</strong>：16×16×4 的压缩比下，一颗瓦当在潜空间里只有一两个 token——<strong>loss 在潜空间算，但高频细节在编码时就已经被截断了</strong>。这部分误差不是模型没学好，是输入信息本身就不够。</li>
+  <li><strong>训练数据中高频区域的真实噪声本身有随机性</strong>：数据压缩、运动模糊、传感器噪声在高频区留下不可预测的成分。</li>
+  <li><strong>首帧条件的信息瓶颈</strong>：i2v 只给首帧，后续帧的高频细节有一部分是"生成"而非"还原"，固有不确定性高。</li>
+</ul>
+<p>这部分误差<strong>路 A 和路 B 都动不了</strong>，它决定了"清晰度上限"。<strong>这也是为什么 VAE 压缩是结构性约束——它直接抬高了 E_固有，任何 LoRA 训练都绕不过去。</strong></p>
+
+<h3>E_表达：LoRA 低秩参数化的容量误差</h3>
+<p><code>ΔW = B·A</code> 的有效秩被 r 限制。高频纹理的正确修正需要较高秩来表达，低秩矩阵只能近似：</p>
+<ul>
+  <li><strong>秩不足导致高频修正被截断</strong>：v1 的 rank32 比 v2 的 rank64 更容易在这里吃亏，但 v2 的 rank64 也不是无限容量。</li>
+  <li><strong>低秩先填"平滑方向"</strong>：低秩结构优先表达路 B 的平滑偏置，高秩的位移修正被推迟——这部分误差在有限步数内<strong>没被降</strong>。</li>
+</ul>
+<p><strong>E_表达是 v2 停在路 B 的结构性原因之一</strong>：不是它不想学路 A，是低秩 + 低 lr 的组合让它先填满了低秩方向。LoRA 的秩 r 限制了它能表达的速度场修正的维度数，而路 A 需要的高秩时序对应关系，恰好是低秩矩阵最难表达的部分。</p>
+
+<h3>E_优化：有限步数/步长导致的未收敛误差</h3>
+<p>这是"还没走到"的误差，不是"走不到"：</p>
+<ul>
+  <li><strong>lr 太小、步数不够</strong>：高秩方向需要更多步数探索，v2 的 3440 步只够走到路 B 盆地。</li>
+  <li><strong>损失景观的局部最优</strong>：路 B 是宽盆地，路 A 是窄盆地，低 lr 缺乏"翻过去"的探索预算。</li>
+  <li><strong>v1 的反向问题</strong>：lr 太大，冲过了路 B 也冲过了路 A，落在"运动放大"的另一个错误解上。</li>
+</ul>
+<p>这部分误差<strong>可以通过调 lr/步数/数据分布来压缩</strong>，v3 的"过滤静帧"就是在削弱路 B 的收益、逼模型走向路 A，但 lr1e-4 + 4 epoch 是否够，是 v3 的核心风险。</p>
+
+<h2>十一、一张表把误差、路 A/路 B 和 Wan2.2 的 loss 对应起来</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>误差成分</th>
+      <th>来源</th>
+      <th>在 Wan2.2 loss 里对应什么</th>
+      <th>路 A 能否降</th>
+      <th>路 B 能否降</th>
+      <th>v2 的实际状态</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>E_位移</td>
+      <td>运动轨迹/视差/遮挡</td>
+      <td>运动区域速度场的时序残差</td>
+      <td>✅ 主目标</td>
+      <td>❌ 可能抬高</td>
+      <td>未降，运动被压</td>
+    </tr>
+    <tr>
+      <td>E_一致性</td>
+      <td>相位/对比度帧间波动</td>
+      <td>潜变量 token 在时间维的方差</td>
+      <td>间接</td>
+      <td>✅ 主目标</td>
+      <td>被压低</td>
+    </tr>
+    <tr>
+      <td>E_固有</td>
+      <td>VAE 压缩/高频随机性/首帧瓶颈</td>
+      <td>潜空间已截断的信息，不可约</td>
+      <td>❌</td>
+      <td>❌</td>
+      <td>不变</td>
+    </tr>
+    <tr>
+      <td>E_表达</td>
+      <td>低秩容量截断</td>
+      <td>LoRA 秩 r 限制的速度场修正维度</td>
+      <td>部分（需高秩）</td>
+      <td>部分（低秩友好）</td>
+      <td>低秩方向被填满</td>
+    </tr>
+    <tr>
+      <td>E_优化</td>
+      <td>lr/步数/景观</td>
+      <td>有限步数未收敛的残差</td>
+      <td>需足够预算</td>
+      <td>低预算即到达</td>
+      <td>停在路 B</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <span class="label">核心信息</span>
+  <p>Wan2.2 的 flow matching loss 是一个<strong>混合了五项误差的标量</strong>，而路 B 恰好能高效降低其中<strong>监督最密集、低秩最友好</strong>的那一项（E_一致性）。路 A 要降的 E_位移，监督稀疏、需要高秩、需要更多步数——在低 lr + 有限步数的预算下，<strong>loss 的自然下降路径就是先走路 B</strong>。</p>
+</div>
+
+<h2>十二、为什么 v2 只降了其中一部分——这对实验意味着什么</h2>
+
+<h3>v2 的清晰度提升，主要来自压低了 E_一致性</h3>
+<p>v2 的瓦当轮廓"保持最好"，是因为帧间不抖了、相位稳定了——<strong>它降的是 E_一致性</strong>，而不是 E_位移。所以它的"细节稳"有一部分是"运动少 → 位移误差没暴露"的统计效应，而不是"正确建模了运动轨迹"。</p>
+<p>这也解释了为什么 alpha 扫描呈现"越低越运动"的反转：<strong>v2 的 LoRA 增量主要作用在 E_一致性上</strong>，调低 alpha 等于削弱这个"压帧间方差"的偏置，画面自然动起来。如果 v2 真的学到了路 A，alpha 降低应该让"运动轨迹"变模糊，而不是让"运动量"变大——但实际观察是后者，说明它的增量方向确实是"刹车"而非"开车"。</p>
+
+<h3>v3 要真正拿到更好的点，必须同时压 E_位移和 E_一致性</h3>
+<p>v3 的"过滤静帧"削弱了路 B 的收益（去掉运动小的样本后，"压帧间方差"不再能显著降低 loss），<strong>逼模型别只压 E_一致性</strong>。但 lr1e-4 + 4 epoch 可能仍不够走到路 A——<strong>如果 v3 运动量上去了但细节崩，说明它抬高了 E_位移却没降 E_一致性，只是从 v2 的极端滑向 v1 的极端。</strong></p>
+
+<h3>可测量的代理指标：把五项误差变成可观测的曲线</h3>
+<p>这是这次实验方法论上最有价值的收获——<strong>不要只看 Laplacian 方差一个数，要把不同误差成分拆成可测量的代理指标</strong>：</p>
+<ul>
+  <li><strong>E_位移</strong>：光流误差 / 轨迹对齐度。用 RAFT 估计相邻帧光流，和真实训练视频的光流对比。</li>
+  <li><strong>E_一致性</strong>：相邻帧 SSIM 波动、相位相关稳定性。瓦当区域的相位漂移可以直接量出来。</li>
+  <li><strong>E_固有</strong>：base 在静帧上的清晰度上限。这是 VAE 压缩给的天花板，任何 LoRA 都超不过。</li>
+  <li><strong>E_表达</strong>：LoRA 权重的奇异值分布。看时间层更新的有效秩，判断它有没有走到高秩方向。</li>
+  <li><strong>E_优化</strong>：训练 loss 曲线是否还在下降。如果 v3 的 loss 在 4 epoch 末仍未平台化，说明 E_优化还没压完。</li>
+</ul>
+<p><strong>把这五条曲线和运动量一起看，比单看 Laplacian 方差更能定位 v3 落在哪个误差成分上。</strong> 如果 v3 的 E_位移代理指标（光流误差）下降了、E_一致性代理指标（SSIM 波动）没有恶化，那才是真正走到了路 A；如果光流误差没降、SSIM 波动反而变大，那只是从"刹车"滑向了"乱开"。</p>
+
+<h2>十三、回到 loss：一个更根本的观察</h2>
+<p>Wan2.2 的 flow matching loss 是一个<strong>对高频纹理"不敏感"的标量</strong>：</p>
+<ol>
+  <li><strong>它在潜空间算</strong>，高频细节在 VAE 编码时已经被截断，E_固有一开始就很高；</li>
+  <li><strong>它对所有 token 一视同仁</strong>，高频区域的梯度被低频区域的梯度稀释；</li>
+  <li><strong>它不区分"位移误差"和"一致性误差"</strong>，路 B 的"压帧间方差"和路 A 的"对齐运动轨迹"在同一个 loss 里竞争，而路 B 的梯度更密集、更低秩、更早到达。</li>
+</ol>
+<p>这不是 Wan2.2 独有的问题，是<strong>潜在扩散模型 + 视频 + 高频纹理</strong>这个组合的结构性特征。VAE 压缩抬高了 E_固有，MSE 的均匀加权稀释了高频梯度，低秩 LoRA 的容量限制压低了 E_表达的天花板，有限步数让 E_优化停在路 B——<strong>四层约束叠加，路 A 在默认配置下几乎不可达。</strong></p>
+<p>这也解释了为什么"调参救不了细节漂移"：CFG、帧数、alpha 都是在<strong>推理端</strong>调节已学到的增量，它们改变不了训练时 loss 已经偏向路 B 这个事实。<strong>要真正走到路 A，必须在训练端动刀子</strong>——数据过滤（削弱路 B 收益）、lr/步数预算（给路 A 探索空间）、正则项（对准运动/相位而非帧间平滑）、或者 VAE 微调（降低 E_固有）。</p>
+
+<h2>十四、这次实验真正学到的东西（更新版）</h2>
+<ol>
+  <li><strong>视频 LoRA 的失败模式，不是"学不会"，而是"学到了捷径"。</strong> 低 lr + 有限步数下，模型优先拟合低秩友好的"抑制变化"（降 E_一致性），而不是高秩的"正确建模运动"（降 E_位移）。表现为"画面很稳但不动"，容易被误读为"细节好"。</li>
+  <li><strong>Wan2.2 的 flow matching loss 对高频纹理是"结构性盲区"。</strong> 潜空间 MSE 均匀加权、VAE 压缩抬高 E_固有、低秩限制 E_表达——四层约束叠加，路 A 在默认配置下几乎不可达。<strong>这不是调参能解决的，是 loss 结构 + 参数化 + 数据分布共同决定的。</strong></li>
+  <li><strong>清晰度指标会骗人，必须和运动量一起看。</strong> Laplacian 方差对运动模糊敏感，运动少 → 帧内清晰 → 方差高。单看清晰度会把"刹车型 LoRA"误判为"最优模型"。<strong>二维散点比单指标排序可靠，五项误差代理指标比单一 Laplacian 方差更能定位问题。</strong></li>
+  <li><strong>单图直觉会被全量统计推翻。</strong> CFG 的方向、alpha 的反转，都是单图观察给出错误信号、全量数据纠正的案例。多场景覆盖是结论可信的前提。</li>
+  <li><strong>参数调节的空间是"保细节 vs 贴文本"，不是"保细节 vs 运动感"。</strong> 想同时保细节和运动感，只能从模型/数据层面解决。CFG 和 alpha 是在"使用"LoRA 的本性，改变不了本性。</li>
+  <li><strong>归因链条要落到具体机制，而不是停在"效果不好"。</strong> 从"感觉有问题"到"VAE 压缩 × 域外高频纹理 × 运动放大"，再到"路 B 优化捷径"和"五项误差分解"——每一步都需要数据支撑，而不是直觉。</li>
+  <li><strong>工具是辅助，不是裁判。</strong> VLM、VideoScore2、Skyra 能帮你"看到"问题，但"归因"必须靠受控实验。模型之间的差异远大于参数之间的差异，这个结论本身就是靠三方对比 + 全量统计得出的。</li>
+</ol>
+
+<footer class="post-footer">
+  <p>实验还在继续。v3 跑完后会有四方对比和同一套量化指标，届时能给出"用哪版、什么场景用"的明确结论。但机制层面的收获——路 A/路 B、五项误差分解、loss 的结构性盲区、清晰度的统计陷阱、参数与模型本性的关系——已经比任何单次结果更有价值。下一步的关键不是"再调一个参数"，而是<strong>把五项误差的代理指标做成可观测的曲线</strong>，让 v3 的评估从"看清晰度排序"升级为"看它降了哪一项误差"。</p>
+</footer>
+
+</div>
+</body>
+</html>

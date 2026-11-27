@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="shizuku-desir7e 的个人博客：视频生成微调实验复盘、CUDA 与高性能算子学习笔记。">
+<title>shizuku-desir7e 的博客</title>
+<style>
+  :root {
+    --text: #1f2328;
+    --muted: #59636e;
+    --bg: #ffffff;
+    --surface: #f6f8fa;
+    --border: #d1d9e0;
+    --accent: #0969da;
+    --accent-soft: #ddf4ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans SC",
+                 "Noto Sans CJK SC", sans-serif;
+    font-size: 17px;
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 72px 24px 120px;
+  }
+  .masthead { margin-bottom: 64px; }
+  .masthead .kicker {
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 34px;
+    line-height: 1.3;
+    margin: 0 0 14px;
+    letter-spacing: -0.01em;
+  }
+  .lede {
+    font-size: 18px;
+    color: var(--muted);
+    line-height: 1.8;
+    margin: 0;
+  }
+  h2 {
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    margin: 0 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  h2::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .post-list { list-style: none; margin: 0; padding: 0; }
+  .post-item {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 26px 28px;
+    margin-bottom: 18px;
+    background: var(--bg);
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .post-item:hover {
+    border-color: var(--accent);
+    background: #fbfdff;
+  }
+  .post-item .meta {
+    font-size: 13.5px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+  }
+  .post-item h3 {
+    margin: 0 0 10px;
+    font-size: 20px;
+    line-height: 1.45;
+    letter-spacing: -0.01em;
+  }
+  .post-item h3 a { color: var(--text); }
+  .post-item h3 a:hover { color: var(--accent); text-decoration: none; }
+  .post-item p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 15.5px;
+    line-height: 1.75;
+  }
+  .post-item .tags { margin-top: 14px; }
+  .tag {
+    display: inline-block;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 999px;
+    padding: 2px 11px;
+    margin-right: 8px;
+  }
+
+  footer.site-footer {
+    margin-top: 80px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 14.5px;
+  }
+  footer.site-footer a { color: inherit; }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 48px 18px 80px; }
+    h1 { font-size: 27px; }
+    body { font-size: 16px; }
+    .post-item { padding: 20px 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="kicker">Blog</div>
+  <h1>shizuku-desir7e 的博客</h1>
+  <p class="lede">视频生成微调实验复盘 · GPU/CUDA 与高性能算子学习笔记。先给数字，再给解读；实测与推断分开标注。</p>
+</header>
+
+<h2>Posts</h2>
+<ul class="post-list">
+  <li class="post-item">
+    <div class="meta">2026-11-27 · 实验复盘 · 约 20 分钟</div>
+    <h3><a href="/posts/2026-11-27-when-lora-learns-to-brake.html">当 LoRA 学会"刹车"：一次 Wan2.2 文旅视频微调实验的完整复盘</a></h3>
+    <p>四张古建、三方对比、两次直觉被推翻、一个叫"路 B"的机制。从"感觉效果有问题"到"定位到优化动力学"的完整排查过程：v1 为何是负优化、v2 的清晰度提升藏着什么统计陷阱、五项误差分解如何把 flow matching loss 拆开看，以及为什么"调参救不了细节漂移"。</p>
+    <div class="tags">
+      <span class="tag">Wan2.2</span>
+      <span class="tag">LoRA</span>
+      <span class="tag">视频生成</span>
+      <span class="tag">Flow Matching</span>
+    </div>
+  </li>
+</ul>
+
+<footer class="site-footer">
+  <p>© 2026 shizuku-desir7e · 由 <a href="https://pages.github.com/">GitHub Pages</a> 托管 · <a href="https://github.com/shizuku-desir7e">GitHub</a></p>
+</footer>
+
+</div>
+</body>
+</html>

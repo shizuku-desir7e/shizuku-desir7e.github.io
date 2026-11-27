@@ -66,6 +66,28 @@
     line-height: 1.8;
     margin: 0;
   }
+  .ref {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 10px;
+    margin: 0 0 12px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14.5px;
+    line-height: 1.7;
+    color: var(--muted);
+  }
+  .ref .ref-tag {
+    flex: none;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
   h2 {
     font-size: 25px;
     line-height: 1.4;
@@ -228,6 +250,10 @@
   <p class="lede">
     四张古建、三方对比、两次直觉被推翻、一个叫"路 B"的机制。这篇记录一次从"感觉效果有问题"到"定位到优化动力学"的完整排查过程，以及那些反直觉的数字背后到底发生了什么。
   </p>
+  <div class="ref">
+    <span class="ref-tag">参考</span>
+    <span><a href="https://kongchang.com/articles/wan2-2-shi-pin-mo-xing-de-lorawei-diao-shi-jian-zhi-nan" target="_blank" rel="noopener">《Wan2.2 LoRA微调实战：从原理到效果优化全攻略》</a>（控场AI）——LoRA 原理与 rank/alpha/CFG 使用侧要点；本文侧重训练侧的实验归因，两篇可互为补充。</span>
+  </div>
 </header>
 
 <h2>一、起点：一个"看起来不对"的视频</h2>
